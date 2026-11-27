@@ -2,7 +2,21 @@
 
 An end-to-end **SQL Server Data Warehouse** project that integrates data from multiple CRM and ERP source systems, processes it using **Medallion Architecture**, and prepares it for analytical reporting.
 
-## Key Highlights
+## Table of Contents
+
+1. [Key Highlights](#1-key-highlights)
+2. [Problem Statement](#2-problem-statement)
+3. [Architecture](#3-architecture)
+4. [Data Processing](#4-data-processing)
+5. [Data Analytics](#5-data-analytics)
+6. [ETL Auditing and Error Handling](#6-etl-auditing-and-error-handling)
+7. [Performance Optimization](#7-performance-optimization)
+8. [Project Structure](#8-project-structure)
+9. [How to Run](#9-how-to-run)
+
+---
+
+## 1. Key Highlights
 
 - **116,292 Records** integrated from 6 CRM and ERP source systems.
 - **98.5× Maximum Query Speed-up** through performance optimization.
@@ -10,7 +24,7 @@ An end-to-end **SQL Server Data Warehouse** project that integrates data from mu
 - **0 Unchanged CRM Rows** inserted or updated when rerunning with unchanged source data.
 - **10/10 Tests Passed** for incremental loading and SCD validation.
 
-## Problem Statement
+## 2. Problem Statement
 
 - **Scattered Data:** Information distributed across multiple CRM and ERP systems.
 - **Poor Data Quality:** Duplicates, missing values, inconsistent formats, and invalid records.
@@ -18,27 +32,27 @@ An end-to-end **SQL Server Data Warehouse** project that integrates data from mu
 - **Historical Tracking:** Need to maintain changes in customer and product information.
 - **Reporting Requirements:** Need for clean, structured data for business analysis.
 
-## Architecture
+## 3. Architecture
 
-The project follows the **Medallion Architecture**, with data passing through Bronze, Silver, and Gold layers. The ETL process is implemented using **SQL Stored Procedures**.
+The project follows **Medallion Architecture**, with data passing through Bronze, Silver, and Gold layers. The ETL process is implemented using **SQL Stored Procedures**.
 
 ![Data Architecture](04_docs/data_architecture.png)
 
-### Data Flow
+**Data Flow**
 
 ![Data Flow](04_docs/data_flow.png)
 
-## Data Processing
+## 4. Data Processing
 
-## 1. Bronze Layer
+### 4.1 Bronze Layer
 
-Stores raw data from the 6 CRM and ERP CSV source files.
+Stores raw data from the **6 CRM and ERP CSV source files**.
 
-- Loads source files using **BULK INSERT**.
+- Loads source files using `BULK INSERT`.
 - Performs full loading without applying transformations.
 - Preserves the original source data.
 
-## 2. Silver Layer
+### 4.2 Silver Layer
 
 Cleans, standardizes, validates, and prepares data from the Bronze layer.
 
@@ -46,13 +60,13 @@ Cleans, standardizes, validates, and prepares data from the Bronze layer.
 
 | Transformation | Example |
 |---|---|
-| Gender code standardization | `M` → `Male`, `F` → `Female` |
+| Gender standardization | `M` → `Male`, `F` → `Female` |
 | Marital status standardization | `S` → `Single`, `M` → `Married` |
 | Product line standardization | `M` → `Mountain`, `R` → `Road` |
 | Country standardization | `US` → `United States`, `DE` → `Germany` |
 | Duplicate removal | Retain the latest customer record |
 | Invalid date handling | Invalid dates → `NULL` |
-| Sales validation | Recalculate incorrect sales using `quantity × ABS(price)` |
+| Sales validation | Recalculate using `quantity × ABS(price)` |
 | Missing value handling | Missing or invalid values → `NULL` or `n/a`, where applicable |
 
 **Incremental Loading and Change Detection**
@@ -69,7 +83,7 @@ Cleans, standardizes, validates, and prepares data from the Bronze layer.
 - **SCD Type 2 – Products:** Preserve historical product versions by closing old records and inserting new versions.
 - **ERP Lookup Tables:** Fully reloaded during each ETL execution.
 
-## 3. Gold Layer
+### 4.3 Gold Layer
 
 Transforms the cleaned Silver data into a **Star Schema** for analytical queries and reporting.
 
@@ -83,7 +97,7 @@ Transforms the cleaned Silver data into a **Star Schema** for analytical queries
 
 **Data Model**
 
-The Gold layer uses a **Star Schema** where `fact_sales` holds one row per order line and connects to `dim_customers` and `dim_products` through surrogate keys.
+The Gold layer uses a **Star Schema**, where `fact_sales` connects to `dim_customers` and `dim_products` through surrogate keys.
 
 ![Data Model](04_docs/data_model.png)
 
@@ -96,11 +110,11 @@ The Gold layer uses a **Star Schema** where `fact_sales` holds one row per order
 
 - Rebuilds the Gold dimensions and fact table after Silver loading.
 - Uses a single **transaction** for the complete Gold rebuild.
-- Uses **COMMIT** when the complete load succeeds and **ROLLBACK** if an operation fails, preserving the previous Gold data.
+- Uses `COMMIT` when the complete load succeeds and `ROLLBACK` if an operation fails, preserving the previous Gold data.
 
-## Data Analytics
+## 5. Data Analytics
 
-Created 11 SQL analytics reports:
+Created **11 SQL analytics reports**:
 
 1. Database Exploration
 2. Dimension Exploration
@@ -114,7 +128,7 @@ Created 11 SQL analytics reports:
 10. Part-to-Whole Analysis
 11. Data Segmentation
 
-## ETL Auditing and Error Handling
+## 6. ETL Auditing and Error Handling
 
 | Feature | Implementation |
 |---|---|
@@ -122,14 +136,14 @@ Created 11 SQL analytics reports:
 | **Watermark Tracking** | Maintains incremental loading progress. |
 | **Error Handling** | Uses `TRY...CATCH` and `THROW` to capture and report failures. |
 | **Transaction Management** | Uses `BEGIN TRANSACTION`, `COMMIT`, and `ROLLBACK`. |
-| **Pipeline Orchestration** | `dbo.load_all` coordinates the Bronze → Silver → Gold loading process. |
+| **Pipeline Orchestration** | `dbo.load_all` coordinates Bronze → Silver → Gold loading. |
 
-## Performance Optimization
+## 7. Performance Optimization
 
 Compared the earlier **view-based implementation** with physical Gold tables using SQL Server 2022. Results represent the **median of 10 query executions**.
 
 | Analytical Query | Pages Read (Before → After) | Time (Before → After) | Speed-up |
-|---|---|---|---|
+|---|---:|---:|---:|
 | Customer Report | 156,483 → 380 | 638 ms → 164 ms | **3.9×** |
 | Product Report | 168,535 → 109 | 619 ms → 35 ms | **17.9×** |
 | Revenue by Category | 1,774 → 17 | 79 ms → 3 ms | **26.3×** |
@@ -141,28 +155,11 @@ Compared the earlier **view-based implementation** with physical Gold tables usi
 **Key Optimization Techniques**
 
 - Replaced the earlier view-based implementation with physical Gold tables.
-- Used **Clustered Columnstore Indexing** and batch processing for analytical queries.
+- Used **Clustered Columnstore Indexing (CCI)** and batch processing for analytical queries.
 - Used the **Customer-Number Index** for faster individual customer lookups.
 - Reduced unnecessary data reads through columnstore processing.
 
-## How to Run
-
-**Prerequisites:** SQL Server 2022, SSMS, and access to the CSV datasets.
-
-1. Clone the repository and open the SQL scripts in SSMS.
-2. Update the CSV paths in the Bronze loading procedure and provide SQL Server service account access.
-3. Execute the scripts in order: `01_setup` → `02_bronze` → `03_silver` → `04_gold` → `05_etl`.
-4. Run the complete pipeline:
-
-```sql
-EXEC dbo.load_all;
-```
-
-5. Run analytics from `02_scripts/06_analytics/` and tests from `03_tests/`.
-
-**Note:** The initial setup script drops and recreates the `DataWarehouse` database. Run it only during initial setup or when intentionally resetting the database.
-
-## Project Structure
+## 8. Project Structure
 
 ```text
 Data-Warehouse-and-Analytics-System/
@@ -182,3 +179,23 @@ Data-Warehouse-and-Analytics-System/
 │   └── data_model.png
 └── README.md
 ```
+
+## 9. How to Run
+
+**Prerequisites:** SQL Server 2022, SQL Server Management Studio (SSMS), and access to the CSV datasets.
+
+1. Clone the repository and open the SQL scripts in SSMS.
+2. Update the CSV paths in the Bronze loading procedure and provide SQL Server service account access.
+3. Execute the scripts in order:
+
+   `01_setup` → `02_bronze` → `03_silver` → `04_gold` → `05_etl`
+
+4. Run the complete pipeline:
+
+```sql
+EXEC dbo.load_all;
+```
+
+5. Run analytics from `02_scripts/06_analytics/` and tests from `03_tests/`.
+
+**Note:** The initial setup script drops and recreates the `DataWarehouse` database. Run it only during initial setup or when intentionally resetting the database.
