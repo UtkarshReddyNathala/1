@@ -1,5 +1,25 @@
--- Creates the customer report view (gold.report_customers): one row per customer with the main KPIs.
--- Includes age group, segment (VIP, Regular, New), recency, orders, sales and average order value.
+/*
+===============================================================================
+Customer Report
+===============================================================================
+Purpose:
+    - This report consolidates key customer metrics and behaviors
+
+Highlights:
+    1. Gathers essential fields such as names, ages, and transaction details.
+    2. Segments customers into categories (VIP, Regular, New) and age groups.
+    3. Aggregates customer-level metrics:
+       - total orders
+       - total sales
+       - total quantity purchased
+       - total products
+       - lifespan (in months)
+    4. Calculates valuable KPIs:
+        - recency (months since last order)
+        - average order value
+        - average monthly spend
+===============================================================================
+*/
 
 -- =============================================================================
 -- Create Report: gold.report_customers
@@ -11,7 +31,9 @@ GO
 CREATE VIEW gold.report_customers AS
 
 WITH base_query AS(
--- 1) Base query: one row per sale, with the customer name and age
+/*---------------------------------------------------------------------------
+1) Base Query: Retrieves core columns from tables
+---------------------------------------------------------------------------*/
 SELECT
     f.order_number,
     f.product_key,
@@ -28,7 +50,9 @@ LEFT JOIN gold.dim_customers c
 WHERE order_date IS NOT NULL)
 
 , customer_aggregation AS (
--- 2) Customer totals: orders, sales, quantity, products and lifespan for each customer
+/*---------------------------------------------------------------------------
+2) Customer Aggregations: Summarizes key metrics at the customer level
+---------------------------------------------------------------------------*/
 SELECT
     customer_key,
     customer_number,
@@ -72,13 +96,12 @@ SELECT
     total_quantity,
     total_products,
     lifespan,
-    -- Average order value = total sales / number of orders
+    -- Compute average order value (AOV)
     CASE WHEN total_orders = 0 THEN 0
         ELSE total_sales / total_orders
     END AS avg_order_value,
-    -- Average monthly spend = total sales / months of history
+    -- Compute average monthly spend
     CASE WHEN lifespan = 0 THEN total_sales
         ELSE total_sales / lifespan
     END AS avg_monthly_spend
--- 3) Final result: add age group, segment, recency and average values
 FROM customer_aggregation
