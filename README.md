@@ -18,20 +18,9 @@ An end-to-end **SQL Server Data Warehouse** project that integrates data from mu
 - **Historical Tracking:** Need to maintain changes in customer and product information.
 - **Reporting Requirements:** Need for clean, structured data for business analysis.
 
-## Technologies Used
-
-- **Database:** SQL Server 2022
-- **Query Language:** T-SQL
-- **Tools:** SQL Server Management Studio (SSMS)
-- **Data Sources:** CRM and ERP CSV files
-- **ETL:** Stored Procedures, BULK INSERT, Incremental Loading
-- **Data Processing:** SHA2_256 Hashing, Watermarks, Window Functions
-- **Data Modeling:** Star Schema, SCD Type 1 and Type 2
-- **Performance Optimization:** Clustered Columnstore Index, Customer-Number Index
-
 ## Architecture
 
-The project follows the **Medallion Architecture**, with data passing through Bronze, Silver, and Gold layers.
+The project follows the **Medallion Architecture**, with data passing through Bronze, Silver, and Gold layers. The ETL process is implemented using **SQL Stored Procedures**.
 
 ![Data Architecture](04_docs/data_architecture.png)
 
@@ -41,7 +30,7 @@ The project follows the **Medallion Architecture**, with data passing through Br
 
 ## Data Processing
 
-### 1. Bronze Layer
+## 1. Bronze Layer
 
 Stores raw data from the 6 CRM and ERP CSV source files.
 
@@ -49,7 +38,7 @@ Stores raw data from the 6 CRM and ERP CSV source files.
 - Performs full loading without applying transformations.
 - Preserves the original source data.
 
-### 2. Silver Layer
+## 2. Silver Layer
 
 Cleans, standardizes, validates, and prepares data from the Bronze layer.
 
@@ -57,13 +46,13 @@ Cleans, standardizes, validates, and prepares data from the Bronze layer.
 
 | Transformation | Example |
 |---|---|
-| Gender code standardization | `m` → `Male`, `f` → `Female` |
+| Gender code standardization | `M` → `Male`, `F` → `Female` |
 | Marital status standardization | `S` → `Single`, `M` → `Married` |
 | Product line standardization | `M` → `Mountain`, `R` → `Road` |
 | Country standardization | `US` → `United States`, `DE` → `Germany` |
 | Duplicate removal | Retain the latest customer record |
 | Invalid date handling | Invalid dates → `NULL` |
-| Sales validation | Recalculate incorrect sales using `quantity × price` |
+| Sales validation | Recalculate incorrect sales using `quantity × ABS(price)` |
 | Missing value handling | Missing or invalid values → `NULL` or `n/a`, where applicable |
 
 **Incremental Loading and Change Detection**
@@ -80,7 +69,7 @@ Cleans, standardizes, validates, and prepares data from the Bronze layer.
 - **SCD Type 2 – Products:** Preserve historical product versions by closing old records and inserting new versions.
 - **ERP Lookup Tables:** Fully reloaded during each ETL execution.
 
-### 3. Gold Layer
+## 3. Gold Layer
 
 Transforms the cleaned Silver data into a **Star Schema** for analytical queries and reporting.
 
@@ -92,6 +81,12 @@ Transforms the cleaned Silver data into a **Star Schema** for analytical queries
 - **Surrogate Keys:** Generated using `ROW_NUMBER()` for customer and product dimensions.
 - **Table Loading Order:** Loads customer and product dimensions first, followed by the sales fact table.
 
+**Data Model**
+
+The Gold layer uses a **Star Schema** where `fact_sales` holds one row per order line and connects to `dim_customers` and `dim_products` through surrogate keys.
+
+![Data Model](04_docs/data_model.png)
+
 **Indexes Used**
 
 - **Clustered Columnstore Index (CCI):** Applied to the fact table to improve analytical query performance.
@@ -102,12 +97,6 @@ Transforms the cleaned Silver data into a **Star Schema** for analytical queries
 - Rebuilds the Gold dimensions and fact table after Silver loading.
 - Uses a single **transaction** for the complete Gold rebuild.
 - Uses **COMMIT** when the complete load succeeds and **ROLLBACK** if an operation fails, preserving the previous Gold data.
-
-## Data Model
-
-A **star schema** in the Gold layer: `fact_sales` holds one row per order line and links to `dim_customers` and `dim_products` through surrogate keys.
-
-![Data Model](04_docs/data_model.png)
 
 ## Data Analytics
 
@@ -140,7 +129,7 @@ Created 11 SQL analytics reports:
 Compared the earlier **view-based implementation** with physical Gold tables using SQL Server 2022. Results represent the **median of 10 query executions**.
 
 | Analytical Query | Pages Read (Before → After) | Time (Before → After) | Speed-up |
-|---|---:|---:|---:|
+|---|---|---|---|
 | Customer Report | 156,483 → 380 | 638 ms → 164 ms | **3.9×** |
 | Product Report | 168,535 → 109 | 619 ms → 35 ms | **17.9×** |
 | Revenue by Category | 1,774 → 17 | 79 ms → 3 ms | **26.3×** |
