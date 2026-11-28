@@ -196,12 +196,13 @@ Data-Warehouse-and-Analytics-System/
 EXEC dbo.load_all;
 ```
 
+5. Run analytics from `02_scripts/06_analytics/` and tests from `03_tests/`.
+
+**Note:** The initial setup script drops and recreates the `DataWarehouse` database. Run it only during initial setup or when intentionally resetting the database.
+
+
 **Author**: Utkarsh Reddy Nathala
 
 **Linkedin**: https://www.linkedin.com/in/utkarshreddynathala/
 
 **Contact**: utkarshnathala@gmail.com , 8977011784
-
-5. Run analytics from `02_scripts/06_analytics/` and tests from `03_tests/`.
-
-**Note:** The initial setup script drops and recreates the `DataWarehouse` database. Run it only during initial setup or when intentionally resetting the database.
